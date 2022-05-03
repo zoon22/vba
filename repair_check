@@ -1,0 +1,49 @@
+Sub dataCopy()  '集計用にデータコピペ
+    Dim wsName As String
+    Dim ws As Worksheet '貼り付け先のシート
+    Dim ws_Data As Worksheet '貼り付け元のシート
+    Dim rowLst1 As Long
+    Dim rowLst2 As Long
+    Dim i As Long
+    Dim bumon_col As Long: bumon_col = 3
+    Dim desc_col As Long: desc_col = 5
+    
+    
+    Dim arr() As Variant
+    Dim bumon As Variant
+    arr = Array("東京", "大阪", "名古屋")
+    Set ws_Data = ThisWorkbook.Worksheets("journal")
+    rowLst2 = ws_Data.Cells(Rows.Count, 1).End(xlUp).Row '最終行取得
+    
+    For Each bumon In arr
+        '貼り付け先の前月度データ削除
+        wsName = bumon
+        Set ws = ThisWorkbook.Worksheets(wsName)
+        rowLst1 = ws.Cells(Rows.Count, 1).End(xlUp).Row '最終行取得
+        If rowLst1 <> 1 Then
+            ws.Range("A2", ws.Cells(Rows.Count, 1).End(xlUp)).EntireRow.Clear '2行目から最終行削除
+        End If
+        
+        '貼り付け元データから条件に合うものをコピペ
+        For i = 2 To rowLst2  '部門か説明にキーワードが含まれる場合コピペ
+            If InStr(ws_Data.Cells(i, bumon_col), bumon) > 0 Or _
+               InStr(ws_Data.Cells(i, desc_col), bumon) > 0 Then
+                ws_Data.Rows(i).Copy
+                ws.Rows(ws.Cells(Rows.Count, 1).End(xlUp).Row + 1).PasteSpecial
+            End If
+        Next i
+    Next bumon
+        
+    'if desc colmn contains keyword "small_size repair"
+    Dim wrd1 As String: wrd1 = "small_size"
+    Dim wrd2 As String: wrd2 = "repair"
+        Set ws = ThisWorkbook.Worksheets("small_repair")
+        For i = 2 To rowLst2  '説明にキーワードが含まれる場合コピペ
+            If InStr(ws_Data.Cells(i, desc_col), wrd1) > 0 Or _
+               InStr(ws_Data.Cells(i, desc_col), wrd2) > 0 Then
+                ws_Data.Rows(i).Copy
+                ws.Rows(ws.Cells(Rows.Count, 1).End(xlUp).Row + 1).PasteSpecial
+            End If
+        Next i
+      
+End Sub
