@@ -1,0 +1,78 @@
+Option Explicit
+
+Sub regexCost()
+    '金額の確認
+    Dim regex As Object
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "[0-9,]+円"
+    regex.Global = True ' matchesを複数取得したい場合には必要
+    
+    Dim ws As Worksheet
+    Dim wsName As String
+    wsName = "集計結果" '確認対象のシート名
+    Set ws = ThisWorkbook.Worksheets(wsName)
+    ' マッチ対象文字列
+    Dim s As String
+
+    Dim item_count As Long '集計した項目の数
+    Dim data_col As Long
+    item_count = 3
+    data_col = 3  '対象シートの3列目にデータがあると仮定
+    Dim j As Long
+    For j = 1 To item_count
+        s = ws.Cells(j + 2, data_col).Value
+
+        ' マッチ実施
+        Dim matches As Variant
+        Set matches = regex.Execute(s)
+
+        ' 結果をデータ確認用シートに出力
+        Dim match As Variant
+        Dim i As Long
+        Dim Sum As Long
+        Dim checkName As String
+        Dim ws_check As Worksheet
+        Sum = 0
+        checkName = "集計データ確認" '結果確認用のシート名
+        Set ws_check = ThisWorkbook.Worksheets(checkName)
+        i = 4  '各金額を4行目以降に記入
+        For Each match In matches
+            ws_check.Cells(i, j * 2 + 1) = match.Value '個々の金額を奇数行に、会社名を偶数行に
+            Sum = Sum + Val(Replace(ws_check.Cells(i, j * 2 + 1).Value, ",", ""))
+            i = i + 1
+        Next match
+        ws_check.Cells(3, j * 2 + 1) = Sum '合計金額を3行目に記入
+        
+        Dim arrLine As Variant
+        arrLine = Split(ws.Cells(j + 2, data_col), "、") 'カンマ区切りでおおよその会社名抽出
+        Dim k As Long
+        For k = 0 To UBound(arrLine)
+            ws_check.Cells(k + 4, j * 2 + 2).Value = arrLine(k)
+        Next k
+    Next j
+    ws_check.Columns("C:H").AutoFit '列幅の自動調整
+End Sub
+
+Sub dataCopy()  '集計用にデータコピペ　ピボットに使う
+    
+    '前月度データ削除
+    Dim wsName As String
+    wsName = "新聞"
+    Dim ws As Worksheet
+    Dim rowsData As Long
+    Set ws = ThisWorkbook.Worksheets(wsName)
+    rowsData = ws.Cells(Rows.Count, 1).End(xlUp).Row '最終行取得
+    If rowsData <> 1 Then
+        ws.Range("A2", ws.Cells(Rows.Count, 1).End(xlUp)).EntireRow.Clear '2行目から最終行削除
+    End If
+    '出力データからコピペ
+    Dim wb As Workbook
+    Set wb = Workbooks.Open(ThisWorkbook.Path & "\data.csv")
+    wb.Worksheets(1).Range("A2", wb.Worksheets(1).Cells(Rows.Count, 1).End(xlUp)).EntireRow.Copy
+    ws.Rows(2).PasteSpecial
+    'Application.DisplayAlerts = False
+    Application.CutCopyMode = False 'クリップボード警告を非表示
+    wb.Close savechanges:=False
+   
+End Sub
+
