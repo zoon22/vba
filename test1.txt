@@ -1,0 +1,110 @@
+Sub ExcelMacro()
+    
+    On Error GoTo ErrHandler ' エラーハンドリング
+
+    
+    'ひな形の前月データ削除
+    Dim wb As Workbook
+    Set wb = Workbooks.Open("C:\Users\USER\Desktop\VBA\ひな形.xlsx")
+    Dim Sheet1 As Worksheet
+    Set Sheet1 = wb.Worksheets(1)
+    Dim Sheet2 As Worksheet
+    Set Sheet2 = wb.Worksheets(2)
+    
+    ' 3行目以降が存在する場合に削除
+    If Sheet1.Rows.Count > 2 Then
+        Sheet1.Range("3:" & Sheet1.Rows.Count).Delete
+    End If
+    If Sheet2.Rows.Count > 2 Then
+        Sheet2.Range("3:" & Sheet2.Rows.Count).Delete
+    End If
+    
+    ' シート名を変更
+    Dim lastMonth As Integer
+    lastMonth = month(DateAdd("m", -1, Date))
+    Dim thisMonth As Integer
+    thisMonth = month(Date)
+    Dim lastYear As Integer
+    lastYear = Right(Year(DateAdd("m", -1, Date)), 2)
+    Sheet1.Name = lastYear & Format(lastMonth, "00") & "21-" & Format(thisMonth, "00") & "20"
+      
+    ' メッセージボックスを表示
+    MsgBox "前月データ削除が完了しました。", vbInformation
+  
+    '今月の詳細データをひな形ファイルに貼り付け
+    Dim file_mei As String
+    file_mei = "C:\Users\USER\Desktop\VBA\データ\詳細.csv"
+    Workbooks.Open Filename:=file_mei
+     Set ws = Workbooks("詳細.csv").Sheets(1)
+    '金額列を削除する
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+    found = False
+    For colIndex = 1 To lastCol
+        If ws.Cells(1, colIndex).Value = "金額" Then
+            found = True
+            Exit For
+        End If
+    Next colIndex
+    ' 列を削除
+    If found Then
+        Set Rng = ws.Columns(colIndex)
+        Rng.Delete Shift:=xlToLeft
+    Else
+        MsgBox "列が見つかりませんでした。", vbExclamation, "エラー"
+    End If
+    
+    'customer列の値が133の行を選択する
+    With Workbooks("詳細.csv").Sheets(1)
+        .Range("A1").AutoFilter Field:=1, Criteria1:=133
+        '選択された行をコピーする
+        Dim LstRow1 As Long
+        LstRow1 = Cells(Rows.Count, 1).End(xlUp).Row
+        Range(Rows(2), Rows(LstRow1)).Copy
+                
+    End With
+    
+    'ひな形に詳細データを貼付け
+    Sheet1.Range("A3").PasteSpecial
+    Application.CutCopyMode = False
+   
+    'フィルターをクリアして閉じる
+    Workbooks("詳細.csv").Sheets(1).AutoFilterMode = False
+    Workbooks("詳細.csv").Close SaveChanges:=True
+    
+    
+    '今月の概要データをひな形ファイルに貼り付け
+    Dim file_total As String
+    file_total = "C:\Users\USER\Desktop\VBA\データ\概要.csv"
+    Workbooks.Open Filename:=file_total
+    'customer列の値が133の行を選択する
+    With Workbooks("概要.csv").Sheets(1)
+        .Range("A1").AutoFilter Field:=1, Criteria1:=133
+        '選択された行をコピーする
+        Dim LstRow2 As Long
+        LstRow2 = Cells(Rows.Count, 1).End(xlUp).Row
+        Range(Rows(2), Rows(LstRow2)).Copy
+    End With
+    
+    'ひな形に概要データを貼付け
+    Sheet2.Range("A3").PasteSpecial
+    Application.CutCopyMode = False
+   
+    'フィルターをクリアして閉じる
+    Workbooks("概要.csv").Sheets(1).AutoFilterMode = False
+    Workbooks("概要.csv").Close SaveChanges:=False
+    
+    
+    ' ワークブックを閉じる
+    Dim newFile As String
+    newFile = "テスト様　" & Format(Year(Date)) & Format(thisMonth, "00") & "20.xlsx"
+    wb.Close SaveChanges:=True, Filename:="C:\Users\USER\Desktop\VBA\" & newFile
+    
+ExitSub:
+    Exit Sub
+
+ErrHandler:
+    MsgBox "エラーが発生しました。" & vbCrLf & Err.Description, vbCritical
+    Resume ExitSub
+    
+End Sub
+
